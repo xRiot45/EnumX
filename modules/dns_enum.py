@@ -33,7 +33,7 @@ def run(target: str, wordlist_path: str = None, threads: int = 10):
 
     # cek wildcard DNS
     if detect_wildcard(target):
-        logger.warning("⚠️ Wildcard DNS detected! Results may contain false positives")
+        logger.warning("Wildcard DNS detected! Results may contain false positives")
 
     subdomains = [f"{sub}.{target}" for sub in wordlist]
 
