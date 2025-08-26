@@ -3,7 +3,7 @@ import random
 import socket
 
 from utils.logger import Logger
-from utils.wordlists import load_wordlist
+from utils.wordlists.wordlists import load_wordlists
 
 logger = Logger()
 
@@ -27,7 +27,7 @@ def detect_wildcard(target: str):
 def run(target: str, wordlist_path: str = None, threads: int = 10):
     """Perform DNS enumeration on the target domain using a wordlist"""
     results = {"subdomains": []}
-    wordlist = load_wordlist(wordlist_path)
+    wordlist = load_wordlists(wordlist_path)
 
     logger.info(f"🔍 Starting DNS Enumeration for: {target}")
     logger.info(f"📑 Wordlist loaded: {len(wordlist)} entries")
