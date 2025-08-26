@@ -1,5 +1,4 @@
 import os
-
 from utils.logger import Logger
 
 logger = Logger()
@@ -9,10 +8,9 @@ DEFAULT_WORDLISTS = [
 ]
 
 def load_wordlist(path: str=None):
-    """Load wordlists from a file or return default wordlists."""
     if path:
-        if os.path.isfile(path):
-            logger.warning("Wordlis file not found, using default wordlists.")
+        if not os.path.isfile(path):
+            logger.warning("Wordlist file not found, using default wordlists.")
             return DEFAULT_WORDLISTS
         
         try:
