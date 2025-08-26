@@ -2,7 +2,6 @@ import concurrent.futures
 import random
 import socket
 
-from utils.file_handler import save_results
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
 
@@ -47,7 +46,5 @@ def run(target: str, wordlist_path: str = None, threads: int = 10,
 
     if not results["subdomains"]:
         logger.error("No valid subdomains found")
-
-    save_results(results, output_file, output_format)
 
     return results
