@@ -110,7 +110,6 @@ def main():
     # --- Normalize dns-records ---
     normalized_records = []
     for rec in args.dns_records:
-        # split by comma biar bisa "A,MX,TXT"
         for r in rec.split(","):
             r = r.strip().upper()
             if r == "ALL":
