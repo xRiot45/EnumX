@@ -24,6 +24,10 @@ def main():
             "  ReconX example.com -m dns\n"
             "  ReconX target.com -m dns --dns-records A MX NS -o result.json -f json\n"
             "  ReconX site.com -m dns --threads 20 -w wordlist.txt\n"
+            "  ReconX target.com -m banner\n"
+            "  ReconX target.com -m endpoint\n"
+            "  ReconX target.com -m ldap-smtp\n"
+            "  ReconX target.com -m smb-ftp\n"
         )
     )
 
@@ -43,9 +47,16 @@ def main():
     module_group.add_argument(
         "-m", "--modules",
         nargs="+",
-        choices=["dns"],
+        choices=["dns", "banner", "endpoint", "ldap-smtp", "smb-ftp"],
         default=["dns"],
-        help="Modules to run (default: dns)"
+        help=(
+            "Modules to run (default: dns)\n"
+            "  dns        : DNS Enumeration\n"
+            "  banner     : Banner Enumeration (coming soon)\n"
+            "  endpoint   : Endpoint Enumeration (coming soon)\n"
+            "  ldap-smtp  : LDAP & SMTP Enumeration (coming soon)\n"
+            "  smb-ftp    : SMB & FTP Enumeration (coming soon)"
+        )
     )
     module_group.add_argument(
         "--dns-records",
@@ -87,6 +98,12 @@ def main():
     )
 
     args = parser.parse_args()
+
+    # --- Module dispatcher ---
+    for mod in args.modules:
+        if mod != "dns":
+            print(f"[!] Module '{mod}' is coming soon...")
+    
     controller = Controller(args)
     controller.run()
 
