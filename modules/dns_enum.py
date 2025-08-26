@@ -1,6 +1,8 @@
-import socket
-import random
 import concurrent.futures
+import random
+import socket
+
+from utils.file_handler import save_results
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
 
@@ -21,12 +23,13 @@ def detect_wildcard(target: str):
     except socket.gaierror:
         return False
 
-def run(target: str, wordlist_path: str = None, threads: int = 10):
+def run(target: str, wordlist_path: str = None, threads: int = 10, 
+        output_format: str = "json", output_file: str = "results.json"):
     results = {"subdomains": []}
     wordlist = load_wordlist(wordlist_path)
 
-    logger.info(f"🔍 Starting DNS Enumeration for: {target}")
-    logger.info(f"📑 Wordlist loaded: {len(wordlist)} entries")
+    logger.info(f"Starting DNS Enumeration for: {target}")
+    logger.info(f"Wordlist loaded: {len(wordlist)} entries")
 
     if detect_wildcard(target):
         logger.warning("Wildcard DNS detected! Results may contain false positives")
@@ -44,5 +47,7 @@ def run(target: str, wordlist_path: str = None, threads: int = 10):
 
     if not results["subdomains"]:
         logger.error("No valid subdomains found")
+
+    save_results(results, output_file, output_format)
 
     return results
