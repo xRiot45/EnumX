@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 88
+target-version = ['py39']
+exclude = '''
+(
+    \.venv
+    | __pycache__
+    | build
+    | dist
+)
+'''
+
+[tool.isort]
+profile = "black"
+skip = [".venv", "__pycache__", "build", "dist"]
+
+[flake8]
+max-line-length = 88
+exclude = .venv,__pycache__,build,dist
