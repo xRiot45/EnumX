@@ -1,14 +1,13 @@
-import concurrent.futures
-import random
 import socket
-
+import random
+import concurrent.futures
 from utils.logger import Logger
-from utils.wordlists.wordlists import load_wordlists
+from utils.wordlists import load_wordlist
 
 logger = Logger()
 
 def resolve_subdomain(subdomain: str):
-    """Resolve a subdomain to its IP address."""
+    """Resolve subdomain ke IP"""
     try:
         ip = socket.gethostbyname(subdomain)
         return subdomain, ip
@@ -16,18 +15,18 @@ def resolve_subdomain(subdomain: str):
         return None
 
 def detect_wildcard(target: str):
-    """Detect if the target domain has wildcard DNS."""
-    fake = f"random-{random.randint(1000, 9999)}.{target}"
+    """Deteksi apakah domain menggunakan wildcard DNS"""
+    fake = f"{random.randint(1000,9999)}.nonexistent.{target}"
     try:
         socket.gethostbyname(fake)
         return True
     except socket.gaierror:
         return False
-    
+
 def run(target: str, wordlist_path: str = None, threads: int = 10):
-    """Perform DNS enumeration on the target domain using a wordlist"""
+    """Main function untuk DNS/Subdomain Enumeration"""
     results = {"subdomains": []}
-    wordlist = load_wordlists(wordlist_path)
+    wordlist = load_wordlist(wordlist_path)
 
     logger.info(f"🔍 Starting DNS Enumeration for: {target}")
     logger.info(f"📑 Wordlist loaded: {len(wordlist)} entries")

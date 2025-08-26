@@ -8,7 +8,7 @@ DEFAULT_WORDLISTS = [
   "www", "mail", "ftp", "dev", "test", "api", "staging", "blog", "admin", "portal"
 ]
 
-def load_wordlists(path: str=None):
+def load_wordlist(path: str=None):
     """Load wordlists from a file or return default wordlists."""
     if path:
         if os.path.isfile(path):
