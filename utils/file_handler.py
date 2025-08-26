@@ -36,7 +36,7 @@ def save_results(results, filename, format_type="json"):
     elif format_type == "csv":
         with open(filepath, "w", newline="") as f:
             writer = csv.writer(f)
-            header = ["subdomain", "record_type", "value"]
+            header = ["Subdomain", "Record Type", "Record Value"]
             writer.writerow(header)
             for entry in all_subdomains:
                 sub = entry["subdomain"]

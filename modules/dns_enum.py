@@ -39,7 +39,7 @@ def run(target: str, wordlist_path: str = None, threads: int = 10,
         dns_records: list[str]=None):
     
     if not dns_records:
-        dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT"]
+        dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
     
     results = {"subdomains": []}
     wordlist = load_wordlist(wordlist_path)

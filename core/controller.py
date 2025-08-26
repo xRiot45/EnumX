@@ -19,7 +19,7 @@ class Controller:
             self.args.dns_records = [r for r in normalized_records if r in valid_choices]
 
             if not self.args.dns_records:
-                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT"]
+                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
 
     def run(self):
         self.logger.info(f"Target: {self.args.target}")

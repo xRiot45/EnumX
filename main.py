@@ -13,6 +13,8 @@ class CustomHelpFormatter(argparse.RawTextHelpFormatter):
 
 
 def main():
+    ALL_DNS_RECORDS = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
+
     parser = argparse.ArgumentParser(
         prog="ReconX",
         description="ReconX - Hybrid Web Enumeration Tool",
@@ -23,6 +25,7 @@ def main():
             "Examples:\n"
             "  ReconX example.com -m dns\n"
             "  ReconX target.com -m dns --dns-records A MX NS -o result.json -f json\n"
+            "  ReconX target.com -m dns --dns-records all -o result.txt -f txt\n"
             "  ReconX site.com -m dns --threads 20 -w wordlist.txt\n"
             "  ReconX target.com -m banner\n"
             "  ReconX target.com -m endpoint\n"
@@ -61,10 +64,15 @@ def main():
     module_group.add_argument(
         "--dns-records",
         nargs="+",
-        default=["A", "AAAA", "MX", "NS", "CNAME", "TXT"],
-        help="DNS record types to enumerate (can be space or comma separated, e.g. 'A MX TXT' or 'A,MX,TXT')"
+        default=["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"],
+        help=(
+            "DNS record types to enumerate (default: all)\n"
+            "  Examples:\n"
+            "    --dns-records A MX TXT\n"
+            "    --dns-records A,MX,TXT\n"
+            "    --dns-records all   (for all record types)"
+        )
     )
-
 
     # --- PERFORMANCE ---
     perf_group = parser.add_argument_group("PERFORMANCE")
@@ -99,11 +107,25 @@ def main():
 
     args = parser.parse_args()
 
+    # --- Normalize dns-records ---
+    normalized_records = []
+    for rec in args.dns_records:
+        # split by comma biar bisa "A,MX,TXT"
+        for r in rec.split(","):
+            r = r.strip().upper()
+            if r == "ALL":
+                normalized_records.extend(ALL_DNS_RECORDS)
+            elif r:
+                normalized_records.append(r)
+
+    # remove duplicate
+    args.dns_records = sorted(set(normalized_records))
+
     # --- Module dispatcher ---
     for mod in args.modules:
         if mod != "dns":
             print(f"[!] Module '{mod}' is coming soon...")
-    
+
     controller = Controller(args)
     controller.run()
 
