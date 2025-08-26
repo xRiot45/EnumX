@@ -1,5 +1,6 @@
 import json
 
+
 class Reporter:
     @staticmethod
     def save(results, output_file: str):

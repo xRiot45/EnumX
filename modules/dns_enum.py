@@ -1,6 +1,7 @@
-import socket
-import random
 import concurrent.futures
+import random
+import socket
+
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
 

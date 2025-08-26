@@ -1,6 +1,7 @@
 from rich import print
 from rich.console import Console
 
+
 class Logger:
     def __init__(self):
         self.console = Console()
