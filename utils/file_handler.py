@@ -36,15 +36,31 @@ def save_results(results, filename, format_type="json"):
     elif format_type == "csv":
         with open(filepath, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["subdomain", "ip"])
+            header = ["subdomain", "record_type", "value"]
+            writer.writerow(header)
             for entry in all_subdomains:
-                writer.writerow([entry["subdomain"], entry["ip"]])
+                sub = entry["subdomain"]
+                records = entry.get("records", {})
+                if records:
+                    for rtype, values in records.items():
+                        for val in values:
+                            writer.writerow([sub, rtype, val])
+                elif "ip" in entry:
+                    writer.writerow([sub, "A", entry["ip"]])
         logger.info(f"Results saved as CSV → {filepath}")
 
     elif format_type == "txt":
         with open(filepath, "w") as f:
             for entry in all_subdomains:
-                f.write(f"{entry['subdomain']} → {entry['ip']}\n")
+                sub = entry["subdomain"]
+                records = entry.get("records", {})
+                if records:
+                    f.write(f"{sub}\n")
+                    for rtype, values in records.items():
+                        for val in values:
+                            f.write(f"  {rtype} → {val}\n")
+                elif "ip" in entry:
+                    f.write(f"{sub} → {entry['ip']}\n")
         logger.info(f"Results saved as TXT → {filepath}")
 
     else:

@@ -10,6 +10,17 @@ class Controller:
         self.aggregator = Aggregator()
         self.logger = Logger()
 
+        if hasattr(self.args, "dns_records"):
+            normalized_records = []
+            for item in self.args.dns_records:
+                normalized_records.extend([r.strip().upper() for r in item.split(",") if r.strip()])
+
+            valid_choices = {"A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"}
+            self.args.dns_records = [r for r in normalized_records if r in valid_choices]
+
+            if not self.args.dns_records:
+                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT"]
+
     def run(self):
         self.logger.info(f"Target: {self.args.target}")
         modules = self.args.modules or ["dns"]
@@ -21,7 +32,8 @@ class Controller:
                 wordlist_path=self.args.wordlist,
                 threads=self.args.threads,
                 output_format=self.args.format,
-                output_file=self.args.output
+                output_file=self.args.output,
+                dns_records=self.args.dns_records
             )
             self.aggregator.add("dns", dns_results)
 

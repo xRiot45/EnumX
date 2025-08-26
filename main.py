@@ -61,10 +61,10 @@ def main():
     module_group.add_argument(
         "--dns-records",
         nargs="+",
-        choices=["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"],
         default=["A", "AAAA", "MX", "NS", "CNAME", "TXT"],
-        help="DNS record types to enumerate (default: A, AAAA, MX, NS, CNAME, TXT)"
+        help="DNS record types to enumerate (can be space or comma separated, e.g. 'A MX TXT' or 'A,MX,TXT')"
     )
+
 
     # --- PERFORMANCE ---
     perf_group = parser.add_argument_group("PERFORMANCE")
