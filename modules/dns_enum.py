@@ -7,7 +7,6 @@ from utils.wordlists import load_wordlist
 logger = Logger()
 
 def resolve_subdomain(subdomain: str):
-    """Resolve subdomain ke IP"""
     try:
         ip = socket.gethostbyname(subdomain)
         return subdomain, ip
@@ -15,7 +14,6 @@ def resolve_subdomain(subdomain: str):
         return None
 
 def detect_wildcard(target: str):
-    """Deteksi apakah domain menggunakan wildcard DNS"""
     fake = f"{random.randint(1000,9999)}.nonexistent.{target}"
     try:
         socket.gethostbyname(fake)
@@ -24,20 +22,17 @@ def detect_wildcard(target: str):
         return False
 
 def run(target: str, wordlist_path: str = None, threads: int = 10):
-    """Main function untuk DNS/Subdomain Enumeration"""
     results = {"subdomains": []}
     wordlist = load_wordlist(wordlist_path)
 
     logger.info(f"🔍 Starting DNS Enumeration for: {target}")
     logger.info(f"📑 Wordlist loaded: {len(wordlist)} entries")
 
-    # cek wildcard DNS
     if detect_wildcard(target):
         logger.warning("Wildcard DNS detected! Results may contain false positives")
 
     subdomains = [f"{sub}.{target}" for sub in wordlist]
 
-    # parallel resolve
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(resolve_subdomain, sub) for sub in subdomains]
         for future in concurrent.futures.as_completed(futures):
