@@ -17,3 +17,9 @@ ldap3==2.9.1
 # Optional SMB/FTP enumeration
 impacket==0.11.0
 paramiko==3.5.0
+
+
+# Formatter
+black==24.3.0
+isort==5.12.0
+flake8==6.1.0
