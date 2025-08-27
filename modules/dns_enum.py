@@ -2,11 +2,11 @@
 import concurrent.futures
 import random
 import socket
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
-import dns.resolver
-import dns.rdataclass
 import dns.exception
+import dns.rdataclass
+import dns.resolver
 
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
