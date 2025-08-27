@@ -19,7 +19,16 @@ class Controller:
             self.args.dns_records = [r for r in normalized_records if r in valid_choices]
 
             if not self.args.dns_records:
-                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
+                self.args.dns_records = [
+                    "A",
+                    "AAAA",
+                    "MX",
+                    "NS",
+                    "CNAME",
+                    "TXT",
+                    "SOA",
+                    "PTR",
+                ]
 
     def run(self):
         self.logger.info(f"Target: {self.args.target}")
@@ -33,7 +42,7 @@ class Controller:
                 threads=self.args.threads,
                 output_format=self.args.format,
                 output_file=self.args.output,
-                dns_records=self.args.dns_records
+                dns_records=self.args.dns_records,
             )
             self.aggregator.add("dns", dns_results)
 

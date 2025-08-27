@@ -12,19 +12,15 @@ def save_results(results, filename, format_type="json"):
     for module_name, data in results.items():
         if isinstance(data, dict) and "subdomains" in data:
             all_subdomains.extend(data["subdomains"])
-    
+
     os.makedirs("output", exist_ok=True)
-    folder_map = {
-        "json": "output/json",
-        "csv": "output/csv",
-        "txt": "output/txt"
-    }
-    
+    folder_map = {"json": "output/json", "csv": "output/csv", "txt": "output/txt"}
+
     folder = folder_map.get(format_type)
     if not folder:
         logger.error(f"Unsupported format: {format_type}")
         return
-    
+
     os.makedirs(folder, exist_ok=True)
     filepath = os.path.join(folder, filename)
 
@@ -46,13 +42,15 @@ def save_results(results, filename, format_type="json"):
                 if records:
                     for rtype, values in records.items():
                         for val in values:
-                            writer.writerow([
-                                sub,
-                                rtype,
-                                val.get("class", "IN"),
-                                val.get("ttl", ""),
-                                val.get("value", val)
-                            ])
+                            writer.writerow(
+                                [
+                                    sub,
+                                    rtype,
+                                    val.get("class", "IN"),
+                                    val.get("ttl", ""),
+                                    val.get("value", val),
+                                ]
+                            )
                 elif "ip" in entry:  # fallback untuk data lama
                     writer.writerow([sub, "A", "IN", "", entry["ip"]])
         logger.info(f"Results saved as CSV → {filepath}")
