@@ -119,6 +119,7 @@ def run(
     output_format: str = "json",
     output_file: str = "results.json",
     dns_records: List[str] = None,
+    logger: Logger = None
 ):
 
     if not dns_records:

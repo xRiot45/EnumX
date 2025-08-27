@@ -108,7 +108,7 @@ def main():
     )
 
     # --- LOGGING ---
-    log_group = parser.add_argument_group("LOGGING")
+    log_group = parser.add_argument_group("LOGGING (default: verbose)")
     log_group.add_argument("--verbose", action="store_true", help="Enable verbose output (show detailded process logs)")
     log_group.add_argument(
         "--silent", action="store_true", help="Silent mode (suppress console output, only save to file)"

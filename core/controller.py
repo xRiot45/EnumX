@@ -10,6 +10,13 @@ class Controller:
         self.aggregator = Aggregator()
         self.logger = Logger()
 
+        if getattr(args, "silent", False):
+            self.logger.set_level("SILENT")
+        elif getattr(args, "verbose", False):
+            self.logger.set_level("DEBUG")
+        else:
+            self.logger.set_level("INFO")
+
         if hasattr(self.args, "dns_records"):
             normalized_records = []
             for item in self.args.dns_records:
@@ -19,16 +26,7 @@ class Controller:
             self.args.dns_records = [r for r in normalized_records if r in valid_choices]
 
             if not self.args.dns_records:
-                self.args.dns_records = [
-                    "A",
-                    "AAAA",
-                    "MX",
-                    "NS",
-                    "CNAME",
-                    "TXT",
-                    "SOA",
-                    "PTR",
-                ]
+                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
 
     def run(self):
         self.logger.info(f"Target: {self.args.target}")
@@ -43,6 +41,7 @@ class Controller:
                 output_format=self.args.format,
                 output_file=self.args.output,
                 dns_records=self.args.dns_records,
+                logger=self.logger,
             )
             self.aggregator.add("dns", dns_results)
 
