@@ -1,7 +1,8 @@
 import csv
 import json
+
 import openpyxl
-from openpyxl.styles import Font, Alignment
+from openpyxl.styles import Alignment, Font
 
 from utils.logger import Logger
 
@@ -27,13 +28,15 @@ class DNSHandler:
                     first_row = True
                     for rtype, values in entry.get("records", {}).items():
                         for val in values:
-                            writer.writerow([
-                                sub if first_row else "",
-                                rtype,
-                                val.get("class", "IN"),
-                                val.get("ttl", ""),
-                                val.get("value", ""),
-                            ])
+                            writer.writerow(
+                                [
+                                    sub if first_row else "",
+                                    rtype,
+                                    val.get("class", "IN"),
+                                    val.get("ttl", ""),
+                                    val.get("value", ""),
+                                ]
+                            )
                             first_row = False
             logger.info(f"[DNS] Saved CSV → {filepath}")
 
@@ -43,9 +46,7 @@ class DNSHandler:
                     f.write(f"{entry['subdomain']}\n")
                     for rtype, values in entry.get("records", {}).items():
                         for val in values:
-                            f.write(
-                                f"  {rtype} {val.get('class','IN')} {val.get('ttl','')} → {val.get('value','')}\n"
-                            )
+                            f.write(f"  {rtype} {val.get('class','IN')} {val.get('ttl','')} → {val.get('value','')}\n")
             logger.info(f"[DNS] Saved TXT → {filepath}")
 
         elif format_type == "xlsx":

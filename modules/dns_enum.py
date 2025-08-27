@@ -109,8 +109,8 @@ def passive_crtsh(domain: str) -> List[str]:
             logger.warning(f"[Passive] crt.sh returned {resp.status_code}")
     except Exception as e:
         logger.warning(f"[Passive] crt.sh error: {e}")
-    return list(set(subdomains)) 
-        
+    return list(set(subdomains))
+
 
 def run(
     target: str,
