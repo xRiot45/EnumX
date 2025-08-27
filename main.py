@@ -107,6 +107,13 @@ def main():
         help="Output format: json, csv, txt, xlsx (default: json)",
     )
 
+    # --- LOGGING ---
+    log_group = parser.add_argument_group("LOGGING")
+    log_group.add_argument("--verbose", action="store_true", help="Enable verbose output (show detailded process logs)")
+    log_group.add_argument(
+        "--silent", action="store_true", help="Silent mode (suppress console output, only save to file)"
+    )
+
     # --- MISC ---
     misc_group = parser.add_argument_group("MISC")
     misc_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
