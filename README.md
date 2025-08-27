@@ -158,7 +158,7 @@ deactivate
 ### Basic DNS Enumeration
 
 ```bash
-python3 main.py google.com -m dns -w wordlists/wordlist-1.txt --dns-records all -o result.xlsx -f xlsx -t 50
+python3 main.py <target> -m dns -w wordlists/wordlist-1.txt -F A MX TXT -o result.md -f md -t 50
 ```
 
 #### Arguments
