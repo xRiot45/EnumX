@@ -2,13 +2,18 @@
 import argparse
 
 from core.controller import Controller
+from utils.logger import Logger
+
+logger = Logger()
 
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
     def _format_action_invocation(self, action):
         if not action.option_strings:
             return super()._format_action_invocation(action)
-        return ", ".join(action.option_strings) + (" <{}>".format(action.metavar) if action.metavar else "")
+        return ", ".join(action.option_strings) + (
+            " <{}>".format(action.metavar) if action.metavar else ""
+        )
 
 
 def main():
@@ -73,7 +78,7 @@ def main():
         nargs="+",
         default=["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"],
         help=(
-            "DNS record types to enumerate (default: all)\n"
+            "DNS record types to enumerate (default: common set)\n"
             "  Examples:\n"
             "    --dns-records A MX TXT\n"
             "    --dns-records A,MX,TXT\n"
@@ -109,9 +114,15 @@ def main():
 
     # --- LOGGING ---
     log_group = parser.add_argument_group("LOGGING (default: verbose)")
-    log_group.add_argument("--verbose", action="store_true", help="Enable verbose output (show detailded process logs)")
     log_group.add_argument(
-        "--silent", action="store_true", help="Silent mode (suppress console output, only save to file)"
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output (show detailed process logs)",
+    )
+    log_group.add_argument(
+        "--silent",
+        action="store_true",
+        help="Silent mode (suppress console output, only save to file)",
     )
 
     # --- MISC ---
@@ -120,7 +131,16 @@ def main():
 
     args = parser.parse_args()
 
-    # --- Normalize dns-records ---
+    if args.verbose and args.silent:
+        parser.error("Options --verbose and --silent cannot be used together")
+
+    if args.silent:
+        logger.set_level("SILENT")
+    elif args.verbose:
+        logger.set_level("DEBUG")
+    else:
+        logger.set_level("INFO")
+
     normalized_records = []
     for rec in args.dns_records:
         for r in rec.split(","):
@@ -130,13 +150,11 @@ def main():
             elif r:
                 normalized_records.append(r)
 
-    # remove duplicate
     args.dns_records = sorted(set(normalized_records))
 
-    # --- Module dispatcher ---
     for mod in args.modules:
         if mod != "dns":
-            print(f"[!] Module '{mod}' is coming soon...")
+            logger.info(f"[!] Module '{mod}' is coming soon...")
 
     controller = Controller(args)
     controller.run()
