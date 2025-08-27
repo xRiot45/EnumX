@@ -8,13 +8,24 @@ class CustomHelpFormatter(argparse.RawTextHelpFormatter):
     def _format_action_invocation(self, action):
         if not action.option_strings:
             return super()._format_action_invocation(action)
-        return ", ".join(action.option_strings) + (
-            " <{}>".format(action.metavar) if action.metavar else ""
-        )
+        return ", ".join(action.option_strings) + (" <{}>".format(action.metavar) if action.metavar else "")
 
 
 def main():
-    ALL_DNS_RECORDS = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
+    ALL_DNS_RECORDS = [
+        "A",
+        "AAAA",
+        "MX",
+        "NS",
+        "CNAME",
+        "TXT",
+        "SOA",
+        "PTR",
+        "SRV",
+        "CAA",
+        "DNSKEY",
+        "RRSIG",
+    ]
 
     parser = argparse.ArgumentParser(
         prog="ReconX",
@@ -32,24 +43,19 @@ def main():
             "  ReconX target.com -m endpoint\n"
             "  ReconX target.com -m ldap-smtp\n"
             "  ReconX target.com -m smb-ftp\n"
-        )
+        ),
     )
 
     # --- TARGET SPECIFICATION ---
     target_group = parser.add_argument_group("TARGET SPECIFICATION")
-    target_group.add_argument(
-        "target",
-        help="Target domain to enumerate (e.g. example.com)"
-    )
-    target_group.add_argument(
-        "-w", "--wordlist",
-        help="Custom wordlist file for subdomain enumeration"
-    )
+    target_group.add_argument("target", help="Target domain to enumerate (e.g. example.com)")
+    target_group.add_argument("-w", "--wordlist", help="Custom wordlist file for subdomain enumeration")
 
     # --- MODULES ---
     module_group = parser.add_argument_group("MODULE SELECTION")
     module_group.add_argument(
-        "-m", "--modules",
+        "-m",
+        "--modules",
         nargs="+",
         choices=["dns", "banner", "endpoint", "ldap-smtp", "smb-ftp"],
         default=["dns"],
@@ -60,7 +66,7 @@ def main():
             "  endpoint   : Endpoint Enumeration (coming soon)\n"
             "  ldap-smtp  : LDAP & SMTP Enumeration (coming soon)\n"
             "  smb-ftp    : SMB & FTP Enumeration (coming soon)"
-        )
+        ),
     )
     module_group.add_argument(
         "--dns-records",
@@ -72,39 +78,38 @@ def main():
             "    --dns-records A MX TXT\n"
             "    --dns-records A,MX,TXT\n"
             "    --dns-records all   (for all record types)"
-        )
+        ),
     )
 
     # --- PERFORMANCE ---
     perf_group = parser.add_argument_group("PERFORMANCE")
     perf_group.add_argument(
-        "-t", "--threads",
+        "-t",
+        "--threads",
         type=int,
         default=10,
-        help="Number of threads for enumeration (default: 10)"
+        help="Number of threads for enumeration (default: 10)",
     )
 
     # --- OUTPUT ---
     output_group = parser.add_argument_group("OUTPUT")
     output_group.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="results.json",
-        help="Output file name (default: results.json)"
+        help="Output file name (default: results.json)",
     )
     output_group.add_argument(
-        "-f", "--format",
+        "-f",
+        "--format",
         choices=["json", "csv", "txt"],
         default="json",
-        help="Output format: json, csv, or txt (default: json)"
+        help="Output format: json, csv, or txt (default: json)",
     )
 
     # --- MISC ---
     misc_group = parser.add_argument_group("MISC")
-    misc_group.add_argument(
-        "-h", "--help",
-        action="help",
-        help="Show this help message and exit"
-    )
+    misc_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 
     args = parser.parse_args()
 
