@@ -107,9 +107,9 @@ def main():
     output_group.add_argument(
         "-f",
         "--format",
-        choices=["json", "csv", "txt", "xlsx"],
+        choices=["json", "csv", "txt", "xlsx", 'html', 'md'],
         default="json",
-        help="Output format: json, csv, txt, xlsx (default: json)",
+        help="Output format: json, csv, txt, xlsx, html, md (default: json)",
     )
 
     # --- LOGGING ---
