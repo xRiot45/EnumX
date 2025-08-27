@@ -10,7 +10,7 @@ class Reporter:
     @staticmethod
     def save(results, filename, format_type="json"):
         os.makedirs("output", exist_ok=True)
-        folder_map = {"json": "output/json", "csv": "output/csv", "txt": "output/txt"}
+        folder_map = {"json": "output/json", "csv": "output/csv", "txt": "output/txt", "xlsx": "output/xlsx"}
         folder = folder_map.get(format_type)
         os.makedirs(folder, exist_ok=True)
         filepath = os.path.join(folder, filename)

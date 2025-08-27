@@ -102,9 +102,9 @@ def main():
     output_group.add_argument(
         "-f",
         "--format",
-        choices=["json", "csv", "txt"],
+        choices=["json", "csv", "txt", "xlsx"],
         default="json",
-        help="Output format: json, csv, or txt (default: json)",
+        help="Output format: json, csv, txt, xlsx (default: json)",
     )
 
     # --- MISC ---
