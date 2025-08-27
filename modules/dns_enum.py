@@ -8,6 +8,7 @@ import dns.query
 import dns.rdataclass
 import dns.resolver
 import dns.zone
+import requests
 
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
@@ -88,6 +89,29 @@ def check_axfr(target: str, nameservers: List[str]) -> List[str]:
     return leaked_domains
 
 
+def passive_crtsh(domain: str) -> List[str]:
+    """
+    Passive OSINT using crt.sh to gather additional subdomains.
+    """
+    subdomains: List[str] = []
+    url = f"https://crt.sh/?q=%25.{domain}&output=json"
+    try:
+        resp = requests.get(url, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            for entry in data:
+                name = entry.get("name_value")
+                if name and "*" not in name:
+                    for n in name.split("\n"):
+                        if n.endswith(domain):
+                            subdomains.append(n.strip())
+        else:
+            logger.warning(f"[Passive] crt.sh returned {resp.status_code}")
+    except Exception as e:
+        logger.warning(f"[Passive] crt.sh error: {e}")
+    return list(set(subdomains)) 
+        
+
 def run(
     target: str,
     wordlist_path: str = None,
@@ -113,14 +137,23 @@ def run(
             "RRSIG",
         ]
 
+    # --- Load from wordlist ---
     wordlist = load_wordlist(wordlist_path)
-    logger.info(f"Starting DNS enumeration on {target} with {len(wordlist)} subdomains...")
+    subdomains = [f"{sub}.{target}" for sub in wordlist]
+
+    # --- Passive OSINT ---
+    passive = passive_crtsh(target)
+    if passive:
+        logger.info(f"[Passive] Found {len(passive)} subdomains from crt.sh")
+        subdomains.extend(passive)
+
+    subdomains = list(set(subdomains))
+    logger.info(f"Starting DNS enumeration on {target} with {len(subdomains)} subdomains...")
 
     if detect_wildcard(target):
         logger.warning("Wildcard DNS detected! Results may contain false positives")
 
     results: Dict[str, Any] = {"subdomains": []}
-    subdomains = [f"{sub}.{target}" for sub in wordlist]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(resolve_subdomain, s, dns_records) for s in subdomains]
