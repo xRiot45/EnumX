@@ -17,20 +17,17 @@ class CustomHelpFormatter(argparse.RawTextHelpFormatter):
 
 
 def main():
-    ALL_DNS_RECORDS = [
-        "A",
-        "AAAA",
-        "MX",
-        "NS",
-        "CNAME",
-        "TXT",
-        "SOA",
-        "PTR",
-        "SRV",
-        "CAA",
-        "DNSKEY",
-        "RRSIG",
-    ]
+    # --- Available filter options per module ---
+    MODULE_FILTERS = {
+        "dns": [
+            "A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR",
+            "SRV", "CAA", "DNSKEY", "RRSIG"
+        ],
+        "banner": ["http", "https", "ftp", "ssh"],
+        "endpoint": ["/api", "/admin", "/login", "/dashboard"],
+        "ldap-smtp": ["ldap", "smtp"],
+        "smb-ftp": ["SMB", "FTP"]
+    }
 
     parser = argparse.ArgumentParser(
         prog="EnumX",
@@ -41,13 +38,11 @@ def main():
         epilog=(
             "EXAMPLES:\n"
             "  EnumX example.com -m dns\n"
-            "  EnumX target.com -m dns -r A MX NS -o result.json -f json\n"
-            "  EnumX target.com -m dns -r all -o result.txt -f txt\n"
+            "  EnumX target.com -m dns -F A MX NS -o result.json -f json\n"
+            "  EnumX target.com -m dns -F all -o result.txt -f txt\n"
             "  EnumX site.com -m dns -t 20 -w wordlist.txt\n"
-            "  EnumX target.com -m banner\n"
-            "  EnumX target.com -m endpoint\n"
-            "  EnumX target.com -m ldap-smtp\n"
-            "  EnumX target.com -m smb-ftp\n"
+            "  EnumX target.com -m banner -F http https\n"
+            "  EnumX target.com -m endpoint -F /api /admin\n"
         ),
     )
 
@@ -66,7 +61,7 @@ def main():
         "-m",
         "--modules",
         nargs="+",
-        choices=["dns", "banner", "endpoint", "ldap-smtp", "smb-ftp"],
+        choices=list(MODULE_FILTERS.keys()),
         default=["dns"],
         help=(
             "Modules to run (default: dns)\n"
@@ -77,18 +72,18 @@ def main():
             "  smb-ftp    : SMB & FTP Enumeration (coming soon)"
         ),
     )
+
+    # --- Generate dynamic filter help ---
+    filter_help_text = "Filter options for the selected module (available options per module):\n"
+    for mod, options in MODULE_FILTERS.items():
+        filter_help_text += f"  {mod}: {', '.join(options)}\n"
+    filter_help_text += "Use -F all to select all options for the module."
+
     module_group.add_argument(
         "-F",
         "--filter",
         nargs="+",
-        default=["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"],
-        help=(
-        "DNS record types to enumerate (default: common set)\n"
-        "  Examples:\n"
-        "    -F A MX TXT\n"
-        "    -F A,MX,TXT\n"
-        "    -F all   (for all record types)"
-        ),
+        help=filter_help_text
     )
 
     # --- PERFORMANCE ---
@@ -149,17 +144,33 @@ def main():
     else:
         logger.set_level("INFO")
 
-    # Normalize DNS records
-    normalized_records = []
-    for rec in args.filter:
-        for r in rec.split(","):
-            r = r.strip().upper()
-            if r == "ALL":
-                normalized_records.extend(ALL_DNS_RECORDS)
-            elif r:
-                normalized_records.append(r)
+    # --- MODULE FILTER ---
+    # Shortcut: -F diarahkan ke modul pertama
+    if getattr(args, "filter", None):
+        first_module = args.modules[0]
+        if first_module == "dns":
+            args.filter_dns = args.filter
+        elif first_module == "banner":
+            args.filter_banner = args.filter
+        elif first_module == "endpoint":
+            args.filter_endpoint = args.filter
+        elif first_module == "ldap-smtp":
+            args.filter_ldap_smtp = args.filter
+        elif first_module == "smb-ftp":
+            args.filter_smb_ftp = args.filter
 
-    args.filter = sorted(set(normalized_records))
+    # Normalize DNS records if dns module is selected
+    if "dns" in args.modules and hasattr(args, "filter_dns"):
+        ALL_DNS_RECORDS = MODULE_FILTERS["dns"]
+        normalized_records = []
+        for rec in args.filter_dns:
+            for r in rec.split(","):
+                r = r.strip().upper()
+                if r == "ALL":
+                    normalized_records.extend(ALL_DNS_RECORDS)
+                elif r:
+                    normalized_records.append(r)
+        args.filter_dns = sorted(set(normalized_records))
 
     # Info for coming soon modules
     for mod in args.modules:
