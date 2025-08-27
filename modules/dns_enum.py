@@ -9,6 +9,7 @@ import dns.rdataclass
 import dns.resolver
 import dns.zone
 import requests
+from rich.progress import Progress
 
 from utils.logger import Logger
 from utils.wordlists import load_wordlist
@@ -119,7 +120,7 @@ def run(
     output_format: str = "json",
     output_file: str = "results.json",
     dns_records: List[str] = None,
-    logger: Logger = None
+    logger: Logger = None,
 ):
 
     if not dns_records:
@@ -156,16 +157,15 @@ def run(
 
     results: Dict[str, Any] = {"subdomains": []}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor, Progress() as progress:
+        task = progress.add_task("[cyan]Resolving subdomains...", total=len(subdomains))
+
         futures = [executor.submit(resolve_subdomain, s, dns_records) for s in subdomains]
         for future in concurrent.futures.as_completed(futures):
             res = future.result()
             if res:
-                logger.success(f"Found: {res['subdomain']}")
-                for rtype, items in res["records"].items():
-                    for item in items:
-                        logger.success(f"   {rtype} {item['class']} TTL={item['ttl']} → {item['value']}")
                 results["subdomains"].append(res)
+            progress.update(task, advance=1)
 
     ns_records = []
     try:

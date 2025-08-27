@@ -87,17 +87,21 @@ class DNSHandler:
 
             wb.save(filepath)
             logger.info(f"[DNS] Saved XLSX with merged cells → {filepath}")
-        
+
         # --- HTML format ---
         elif format_type == "html":
             with open(filepath, "w") as f:
                 f.write("<!DOCTYPE html><html><head><meta charset='UTF-8'>\n")
-                f.write("<style>table{border-collapse:collapse;width:100%;}"
-                        "th,td{border:1px solid #ddd;padding:8px;}"
-                        "th{background:#333;color:#fff;}</style></head><body>\n")
+                f.write(
+                    "<style>table{border-collapse:collapse;width:100%;}"
+                    "th,td{border:1px solid #ddd;padding:8px;}"
+                    "th{background:#333;color:#fff;}</style></head><body>\n"
+                )
                 f.write("<h2>DNS Enumeration Results</h2>\n")
                 f.write("<table>\n")
-                f.write("<tr><th>Subdomain</th><th>Record Type</th><th>Class</th><th>TTL</th><th>Record Value</th></tr>\n")
+                f.write(
+                    "<tr><th>Subdomain</th><th>Record Type</th><th>Class</th><th>TTL</th><th>Record Value</th></tr>\n"
+                )
 
                 for entry in subdomains:
                     sub = entry["subdomain"]
@@ -114,7 +118,7 @@ class DNSHandler:
                             first_row = False
                 f.write("</table></body></html>\n")
             logger.info(f"[DNS] Saved HTML → {filepath}")
-        
+
         # --- Markdown format ---
         elif format_type == "md":
             with open(filepath, "w") as f:

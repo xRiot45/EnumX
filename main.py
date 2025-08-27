@@ -33,28 +33,32 @@ def main():
     ]
 
     parser = argparse.ArgumentParser(
-        prog="ReconX",
-        description="ReconX - Hybrid Web Enumeration Tool",
+        prog="EnumX",
+        description="EnumX - Hybrid Web Enumeration Tool",
         formatter_class=CustomHelpFormatter,
         add_help=False,
         usage=argparse.SUPPRESS,
         epilog=(
-            "Examples:\n"
-            "  ReconX example.com -m dns\n"
-            "  ReconX target.com -m dns --dns-records A MX NS -o result.json -f json\n"
-            "  ReconX target.com -m dns --dns-records all -o result.txt -f txt\n"
-            "  ReconX site.com -m dns --threads 20 -w wordlist.txt\n"
-            "  ReconX target.com -m banner\n"
-            "  ReconX target.com -m endpoint\n"
-            "  ReconX target.com -m ldap-smtp\n"
-            "  ReconX target.com -m smb-ftp\n"
+            "EXAMPLES:\n"
+            "  EnumX example.com -m dns\n"
+            "  EnumX target.com -m dns -r A MX NS -o result.json -f json\n"
+            "  EnumX target.com -m dns -r all -o result.txt -f txt\n"
+            "  EnumX site.com -m dns -t 20 -w wordlist.txt\n"
+            "  EnumX target.com -m banner\n"
+            "  EnumX target.com -m endpoint\n"
+            "  EnumX target.com -m ldap-smtp\n"
+            "  EnumX target.com -m smb-ftp\n"
         ),
     )
 
     # --- TARGET SPECIFICATION ---
     target_group = parser.add_argument_group("TARGET SPECIFICATION")
-    target_group.add_argument("target", help="Target domain to enumerate (e.g. example.com)")
-    target_group.add_argument("-w", "--wordlist", help="Custom wordlist file for subdomain enumeration")
+    target_group.add_argument(
+        "target", help="Target domain to enumerate (e.g. example.com)"
+    )
+    target_group.add_argument(
+        "-w", "--wordlist", help="Custom wordlist file for subdomain enumeration"
+    )
 
     # --- MODULES ---
     module_group = parser.add_argument_group("MODULE SELECTION")
@@ -74,15 +78,16 @@ def main():
         ),
     )
     module_group.add_argument(
-        "--dns-records",
+        "-F",
+        "--filter",
         nargs="+",
         default=["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"],
         help=(
-            "DNS record types to enumerate (default: common set)\n"
-            "  Examples:\n"
-            "    --dns-records A MX TXT\n"
-            "    --dns-records A,MX,TXT\n"
-            "    --dns-records all   (for all record types)"
+        "DNS record types to enumerate (default: common set)\n"
+        "  Examples:\n"
+        "    -F A MX TXT\n"
+        "    -F A,MX,TXT\n"
+        "    -F all   (for all record types)"
         ),
     )
 
@@ -107,7 +112,7 @@ def main():
     output_group.add_argument(
         "-f",
         "--format",
-        choices=["json", "csv", "txt", "xlsx", 'html', 'md'],
+        choices=["json", "csv", "txt", "xlsx", "html", "md"],
         default="json",
         help="Output format: json, csv, txt, xlsx, html, md (default: json)",
     )
@@ -115,11 +120,13 @@ def main():
     # --- LOGGING ---
     log_group = parser.add_argument_group("LOGGING (default: verbose)")
     log_group.add_argument(
+        "-v",
         "--verbose",
         action="store_true",
         help="Enable verbose output (show detailed process logs)",
     )
     log_group.add_argument(
+        "-s",
         "--silent",
         action="store_true",
         help="Silent mode (suppress console output, only save to file)",
@@ -131,6 +138,7 @@ def main():
 
     args = parser.parse_args()
 
+    # --- LOGIC HANDLING ---
     if args.verbose and args.silent:
         parser.error("Options --verbose and --silent cannot be used together")
 
@@ -141,8 +149,9 @@ def main():
     else:
         logger.set_level("INFO")
 
+    # Normalize DNS records
     normalized_records = []
-    for rec in args.dns_records:
+    for rec in args.filter:
         for r in rec.split(","):
             r = r.strip().upper()
             if r == "ALL":
@@ -150,8 +159,9 @@ def main():
             elif r:
                 normalized_records.append(r)
 
-    args.dns_records = sorted(set(normalized_records))
+    args.filter = sorted(set(normalized_records))
 
+    # Info for coming soon modules
     for mod in args.modules:
         if mod != "dns":
             logger.info(f"[!] Module '{mod}' is coming soon...")
