@@ -24,19 +24,9 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog="EnumX",
-        description="EnumX - Hybrid Web Enumeration Tool",
         formatter_class=CustomHelpFormatter,
         add_help=False,
-        usage=argparse.SUPPRESS,
-        epilog=(
-            "EXAMPLES:\n"
-            "  EnumX example.com -m dns\n"
-            "  EnumX target.com -m dns -F A MX NS -o result.json -f json\n"
-            "  EnumX target.com -m dns -F all -o result.txt -f txt\n"
-            "  EnumX site.com -m dns -t 20 -w wordlist.txt\n"
-            "  EnumX target.com -m banner -F http https\n"
-            "  EnumX target.com -m endpoint -F /api /admin\n"
-        ),
+        usage="python3 main.py <target> [-w WORDLIST] [-m MODULES] [-F FILTER] [-t THREADS] [-o OUTPUT] [-f FORMAT] [-v VERBOSE | -s SILENT]",
     )
 
     # --- TARGET SPECIFICATION ---
@@ -127,7 +117,6 @@ def main():
         logger.set_level("DEBUG")
 
     # --- MODULE FILTER ---
-    # Shortcut: -F diarahkan ke modul pertama
     if getattr(args, "filter", None):
         first_module = args.modules[0]
         if first_module == "dns":
