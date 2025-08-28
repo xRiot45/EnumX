@@ -192,10 +192,24 @@ def passive_securitytrails(domain: str, api_key: str) -> List[str]:
 def passive_shodan(domain: str, api_key: str) -> List[str]:
     """
     Passive OSINT using Shodan API to gather subdomains.
+    Only available for Membership or higher accounts.
     """
     subdomains: List[str] = []
-    url = f"https://api.shodan.io/dns/domain/{domain}?key={api_key}"
 
+    info_url = f"https://api.shodan.io/api-info?key={api_key}"
+    try:
+        resp_info = requests.get(info_url, timeout=10)
+        if resp_info.status_code == 401:
+            logger.warning("Invalid Shodan API key. Skipping Shodan enumeration.")
+            return []
+        elif resp_info.status_code == 403:
+            logger.warning("Shodan DNS enumeration requires Membership account ($49 one-time). Skipping...")
+            return []
+    except Exception as e:
+        logger.warning(f"Shodan API info check failed: {e}")
+        return []
+
+    url = f"https://api.shodan.io/dns/domain/{domain}?key={api_key}"
     try:
         resp = requests.get(url, timeout=15)
         if resp.status_code == 200:
@@ -203,8 +217,8 @@ def passive_shodan(domain: str, api_key: str) -> List[str]:
             if "subdomains" in data:
                 for sub in data["subdomains"]:
                     subdomains.append(f"{sub}.{domain}")
-        elif resp.status_code == 429:
-            logger.warning("Shodan API rate limit exceeded. Try again later.")
+        elif resp.status_code == 403:
+            logger.warning("Shodan DNS enumeration requires Membership account ($49 one-time). Skipping...")
         else:
             logger.warning(f"Shodan returned {resp.status_code}: {resp.text}")
     except Exception as e:
@@ -278,7 +292,7 @@ def run(
         logger.warning("Shodan API key not found in .env, skipping Shodan passive enumeration")
 
     if passive:
-        logger.info(f"[Passive] Found total {len(passive)} subdomains (crt.sh + VirusTotal)")
+        logger.info(f"[Passive] Found total {len(passive)} subdomains (crt.sh + VirusTotal + SecurityTrails + Shodan)")
         subdomains.extend(passive)
 
     subdomains = list(set(subdomains))
