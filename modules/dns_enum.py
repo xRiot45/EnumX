@@ -1,7 +1,8 @@
 import concurrent.futures
+import os
 import random
 import socket
-import os
+import time
 from typing import Any, Dict, List, Optional
 
 import dns.exception
@@ -10,8 +11,8 @@ import dns.rdataclass
 import dns.resolver
 import dns.zone
 import requests
-from rich.progress import Progress
 from dotenv import load_dotenv
+from rich.progress import Progress
 
 from utils.logger import global_console
 from utils.logger import global_logger as logger
@@ -125,13 +126,27 @@ def passive_crtsh(domain: str) -> List[str]:
 def passive_virustotal(domain: str, api_key: str) -> List[str]:
     """
     Passive OSINT using VirusTotal API to gather additional subdomains.
+    Handles public API rate limit (4 requests/minute).
     """
     subdomains: List[str] = []
     url = f"https://www.virustotal.com/api/v3/domains/{domain}/subdomains"
     headers = {"x-apikey": api_key}
 
+    # --- Rate limit handler ---
+    # VT free API = max 4 requests per minute => 1 request / 15 seconds
+    if not hasattr(passive_virustotal, "_last_request_time"):
+        passive_virustotal._last_request_time = 0
+
+    elapsed = time.time() - passive_virustotal._last_request_time
+    if elapsed < 15:
+        sleep_time = 15 - elapsed
+        logger.info(f"[VirusTotal] Rate limit: sleeping {sleep_time:.1f}s before next request...")
+        time.sleep(sleep_time)
+
     try:
         resp = requests.get(url, headers=headers, timeout=15)
+        passive_virustotal._last_request_time = time.time()
+
         if resp.status_code == 200:
             data = resp.json()
             if "data" in data:
@@ -139,10 +154,61 @@ def passive_virustotal(domain: str, api_key: str) -> List[str]:
                     name = entry.get("id")
                     if name and name.endswith(domain):
                         subdomains.append(name.strip())
+        elif resp.status_code == 429:
+            logger.warning("VirusTotal API rate limit exceeded. Try again later.")
         else:
             logger.warning(f"VirusTotal returned {resp.status_code}: {resp.text}")
     except Exception as e:
         logger.warning(f"VirusTotal error: {e}")
+
+    return list(set(subdomains))
+
+
+def passive_securitytrails(domain: str, api_key: str) -> List[str]:
+    """
+    Passive OSINT using SecurityTrails API to gather subdomains.
+    """
+    subdomains: List[str] = []
+    url = f"https://api.securitytrails.com/v1/domain/{domain}/subdomains"
+    headers = {"APIKEY": api_key}
+
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            if "subdomains" in data:
+                for sub in data["subdomains"]:
+                    subdomains.append(f"{sub}.{domain}")
+        elif resp.status_code == 429:
+            logger.warning("SecurityTrails API rate limit exceeded. Try again later.")
+        else:
+            logger.warning(f"SecurityTrails returned {resp.status_code}: {resp.text}")
+    except Exception as e:
+        logger.warning(f"SecurityTrails error: {e}")
+
+    return list(set(subdomains))
+
+
+def passive_shodan(domain: str, api_key: str) -> List[str]:
+    """
+    Passive OSINT using Shodan API to gather subdomains.
+    """
+    subdomains: List[str] = []
+    url = f"https://api.shodan.io/dns/domain/{domain}?key={api_key}"
+
+    try:
+        resp = requests.get(url, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            if "subdomains" in data:
+                for sub in data["subdomains"]:
+                    subdomains.append(f"{sub}.{domain}")
+        elif resp.status_code == 429:
+            logger.warning("Shodan API rate limit exceeded. Try again later.")
+        else:
+            logger.warning(f"Shodan returned {resp.status_code}: {resp.text}")
+    except Exception as e:
+        logger.warning(f"Shodan error: {e}")
 
     return list(set(subdomains))
 
@@ -178,6 +244,7 @@ def run(
     subdomains = [f"{sub}.{target}" for sub in wordlist]
 
     # --- Passive OSINT ---
+    # crt.sh passive
     passive = passive_crtsh(target)
 
     # VirusTotal passive
@@ -189,6 +256,26 @@ def run(
             passive.extend(vt_passive)
     else:
         logger.warning("VirusTotal API key not found in .env, skipping VT passive enumeration")
+
+    # SecurityTrails passive
+    st_api_key = os.getenv("ST_API_KEY")
+    if st_api_key:
+        st_passive = passive_securitytrails(target, st_api_key)
+        if st_passive:
+            logger.info(f"[Passive] Found {len(st_passive)} subdomains from SecurityTrails")
+            passive.extend(st_passive)
+    else:
+        logger.warning("SecurityTrails API key not found in .env, skipping ST passive enumeration")
+
+    # Shodan passive
+    shodan_api_key = os.getenv("SHODAN_API_KEY")
+    if shodan_api_key:
+        shodan_passive = passive_shodan(target, shodan_api_key)
+        if shodan_passive:
+            logger.info(f"[Passive] Found {len(shodan_passive)} subdomains from Shodan")
+            passive.extend(shodan_passive)
+    else:
+        logger.warning("Shodan API key not found in .env, skipping Shodan passive enumeration")
 
     if passive:
         logger.info(f"[Passive] Found total {len(passive)} subdomains (crt.sh + VirusTotal)")
