@@ -2,31 +2,24 @@
 import argparse
 
 from core.controller import Controller
-from utils.logger import Logger
-
-logger = Logger()
+from utils.logger import global_logger as logger
 
 
 class CustomHelpFormatter(argparse.RawTextHelpFormatter):
     def _format_action_invocation(self, action):
         if not action.option_strings:
             return super()._format_action_invocation(action)
-        return ", ".join(action.option_strings) + (
-            " <{}>".format(action.metavar) if action.metavar else ""
-        )
+        return ", ".join(action.option_strings) + (" <{}>".format(action.metavar) if action.metavar else "")
 
 
 def main():
     # --- Available filter options per module ---
     MODULE_FILTERS = {
-        "dns": [
-            "A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR",
-            "SRV", "CAA", "DNSKEY", "RRSIG"
-        ],
+        "dns": ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR", "SRV", "CAA", "DNSKEY", "RRSIG"],
         "banner": ["http", "https", "ftp", "ssh"],
         "endpoint": ["/api", "/admin", "/login", "/dashboard"],
         "ldap-smtp": ["ldap", "smtp"],
-        "smb-ftp": ["SMB", "FTP"]
+        "smb-ftp": ["SMB", "FTP"],
     }
 
     parser = argparse.ArgumentParser(
@@ -48,12 +41,8 @@ def main():
 
     # --- TARGET SPECIFICATION ---
     target_group = parser.add_argument_group("TARGET SPECIFICATION")
-    target_group.add_argument(
-        "target", help="Target domain to enumerate (e.g. example.com)"
-    )
-    target_group.add_argument(
-        "-w", "--wordlist", help="Custom wordlist file for subdomain enumeration"
-    )
+    target_group.add_argument("target", help="Target domain to enumerate (e.g. example.com)")
+    target_group.add_argument("-w", "--wordlist", help="Custom wordlist file for subdomain enumeration")
 
     # --- MODULES ---
     module_group = parser.add_argument_group("MODULE SELECTION")
@@ -79,12 +68,7 @@ def main():
         filter_help_text += f"  {mod}: {', '.join(options)}\n"
     filter_help_text += "Use -F all to select all options for the module."
 
-    module_group.add_argument(
-        "-F",
-        "--filter",
-        nargs="+",
-        help=filter_help_text
-    )
+    module_group.add_argument("-F", "--filter", nargs="+", help=filter_help_text)
 
     # --- PERFORMANCE ---
     perf_group = parser.add_argument_group("PERFORMANCE")
@@ -139,10 +123,8 @@ def main():
 
     if args.silent:
         logger.set_level("SILENT")
-    elif args.verbose:
-        logger.set_level("DEBUG")
     else:
-        logger.set_level("INFO")
+        logger.set_level("DEBUG")
 
     # --- MODULE FILTER ---
     # Shortcut: -F diarahkan ke modul pertama

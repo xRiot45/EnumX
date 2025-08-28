@@ -4,14 +4,14 @@ from rich.table import Table
 from core.aggregator import Aggregator
 from core.reporting import Reporter
 from modules import dns_enum
-from utils.logger import Logger
+from utils.logger import global_logger as logger
 
 
 class Controller:
     def __init__(self, args):
         self.args = args
         self.aggregator = Aggregator()
-        self.logger = Logger()
+        self.logger = logger
 
         if getattr(args, "silent", False):
             self.logger.set_level("SILENT")
@@ -20,16 +20,31 @@ class Controller:
         else:
             self.logger.set_level("INFO")
 
-        if hasattr(self.args, "dns_records"):
-            normalized_records = []
-            for item in self.args.dns_records:
-                normalized_records.extend([r.strip().upper() for r in item.split(",") if r.strip()])
+        # Normalize DNS record filters
+        VALID_CHOICES = {"A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR", "SRV", "CAA", "DNSKEY", "RRSIG"}
 
-            valid_choices = {"A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"}
-            self.args.dns_records = [r for r in normalized_records if r in valid_choices]
+        raw_filters = None
+        if getattr(self.args, "filter_dns", None):
+            raw_filters = self.args.filter_dns
+        elif getattr(self.args, "dns_records", None):
+            raw_filters = self.args.dns_records
 
+        if raw_filters:
+            normalized = []
+            for item in raw_filters:
+                for r in str(item).split(","):
+                    r = r.strip().upper()
+                    if not r:
+                        continue
+                    if r == "ALL":
+                        normalized.extend(list(VALID_CHOICES))
+                    else:
+                        normalized.append(r)
+            self.args.dns_records = sorted(set([r for r in normalized if r in VALID_CHOICES]))
             if not self.args.dns_records:
-                self.args.dns_records = ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR"]
+                self.args.dns_records = sorted(VALID_CHOICES)
+        else:
+            self.args.dns_records = sorted(VALID_CHOICES)
 
     def run(self):
         self.logger.info(f"Target: {self.args.target}")
@@ -43,34 +58,37 @@ class Controller:
                 threads=self.args.threads,
                 output_format=self.args.format,
                 output_file=self.args.output,
-                dns_records=self.args.filter,
+                dns_records=getattr(self.args, "dns_records", None),
                 logger=self.logger,
             )
             self.aggregator.add("dns", dns_results)
 
-            console = Console()
-            table = Table(title=f"DNS Enumeration Results for {self.args.target}")
+            if not getattr(self.args, "silent", False):
+                console = Console()
+                table = Table(title=f"DNS Enumeration Results for {self.args.target}")
 
-            table.add_column("Subdomain", style="cyan", no_wrap=True)
-            table.add_column("Record Type", style="magenta")
-            table.add_column("Class", style="green")
-            table.add_column("TTL", style="yellow")
-            table.add_column("Value", style="white")
+                table.add_column("Subdomain", style="cyan", no_wrap=True)
+                table.add_column("Record Type", style="magenta")
+                table.add_column("Class", style="green")
+                table.add_column("TTL", style="yellow")
+                table.add_column("Value", style="white")
 
-            filters = (
-                set([r.upper() for r in getattr(self.args, "filter", [])])
-                if getattr(self.args, "filter", None)
-                else None
-            )
+                filters = (
+                    set([r.upper() for r in getattr(self.args, "dns_records", [])])
+                    if getattr(self.args, "dns_records", None)
+                    else None
+                )
 
-            for entry in dns_results.get("subdomains", []):
-                sub = entry["subdomain"]
-                for rtype, values in entry.get("records", {}).items():
-                    if filters and rtype not in filters:
-                        continue
-                for val in values:
-                    table.add_row(sub, rtype, val.get("class", "IN"), str(val.get("ttl", "")), val.get("value", ""))
+                for entry in dns_results.get("subdomains", []):
+                    sub = entry["subdomain"]
+                    for rtype, values in entry.get("records", {}).items():
+                        if filters and rtype not in filters:
+                            continue
+                        for val in values:
+                            table.add_row(
+                                sub, rtype, val.get("class", "IN"), str(val.get("ttl", "")), val.get("value", "")
+                            )
 
-            console.print(table)
+                console.print(table)
 
         Reporter.save(self.aggregator.get_results(), self.args.output, self.args.format)

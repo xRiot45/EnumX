@@ -11,10 +11,9 @@ import dns.zone
 import requests
 from rich.progress import Progress
 
-from utils.logger import Logger
+from utils.logger import global_console
+from utils.logger import global_logger as logger
 from utils.wordlists import load_wordlist
-
-logger = Logger()
 
 
 def _query(domain: str, rtype: str, resolver: dns.resolver.Resolver) -> List[Dict[str, Any]]:
@@ -51,11 +50,16 @@ def resolve_subdomain(subdomain: str, record_types: List[str]) -> Optional[Dict[
     records: Dict[str, List[Dict[str, Any]]] = {}
 
     for rtype in record_types:
+        if rtype.upper() == "ALL":
+            continue
+
         items = _query(subdomain, rtype, resolver)
         if items:
             records[rtype] = items
 
     if records:
+        if logger.level == "DEBUG":
+            logger.info(f"Resolved {subdomain} ({', '.join(records.keys())})")
         return {"subdomain": subdomain, "records": records}
     return None
 
@@ -107,9 +111,9 @@ def passive_crtsh(domain: str) -> List[str]:
                         if n.endswith(domain):
                             subdomains.append(n.strip())
         else:
-            logger.warning(f"[Passive] crt.sh returned {resp.status_code}")
+            logger.warning(f"crt.sh returned {resp.status_code}")
     except Exception as e:
-        logger.warning(f"[Passive] crt.sh error: {e}")
+        logger.warning(f"crt.sh error: {e}")
     return list(set(subdomains))
 
 
@@ -120,7 +124,7 @@ def run(
     output_format: str = "json",
     output_file: str = "results.json",
     dns_records: List[str] = None,
-    logger: Logger = None,
+    logger=None,
 ):
 
     if not dns_records:
@@ -156,16 +160,29 @@ def run(
         logger.warning("Wildcard DNS detected! Results may contain false positives")
 
     results: Dict[str, Any] = {"subdomains": []}
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=threads)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor, Progress() as progress:
-        task = progress.add_task("[cyan]Resolving subdomains...", total=len(subdomains))
-
-        futures = [executor.submit(resolve_subdomain, s, dns_records) for s in subdomains]
-        for future in concurrent.futures.as_completed(futures):
-            res = future.result()
-            if res:
-                results["subdomains"].append(res)
-            progress.update(task, advance=1)
+    if logger.level == "SILENT":
+        with (
+            executor as ex,
+            Progress(console=global_console, transient=True, redirect_stdout=False, redirect_stderr=False) as progress,
+        ):
+            task = progress.add_task("[cyan]Resolving subdomains...", total=len(subdomains))
+            futures = [ex.submit(resolve_subdomain, s, dns_records) for s in subdomains]
+            for future in concurrent.futures.as_completed(futures):
+                res = future.result()
+                if res:
+                    results["subdomains"].append(res)
+                progress.update(task, advance=1)
+    else:
+        with executor as ex, Progress(console=global_console, transient=True) as progress:
+            task = progress.add_task("[cyan]Resolving subdomains...", total=len(subdomains))
+            futures = [ex.submit(resolve_subdomain, s, dns_records) for s in subdomains]
+            for future in concurrent.futures.as_completed(futures):
+                res = future.result()
+                if res:
+                    results["subdomains"].append(res)
+                progress.update(task, advance=1)
 
     ns_records = []
     try:
