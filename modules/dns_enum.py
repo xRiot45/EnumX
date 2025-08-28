@@ -1,6 +1,7 @@
 import concurrent.futures
 import random
 import socket
+import os
 from typing import Any, Dict, List, Optional
 
 import dns.exception
@@ -10,10 +11,14 @@ import dns.resolver
 import dns.zone
 import requests
 from rich.progress import Progress
+from dotenv import load_dotenv  # <<<< tambahan
 
 from utils.logger import global_console
 from utils.logger import global_logger as logger
 from utils.wordlists import load_wordlist
+
+# --- Load environment variables (.env) ---
+load_dotenv()
 
 
 def _query(domain: str, rtype: str, resolver: dns.resolver.Resolver) -> List[Dict[str, Any]]:
@@ -117,6 +122,31 @@ def passive_crtsh(domain: str) -> List[str]:
     return list(set(subdomains))
 
 
+def passive_virustotal(domain: str, api_key: str) -> List[str]:
+    """
+    Passive OSINT using VirusTotal API to gather additional subdomains.
+    """
+    subdomains: List[str] = []
+    url = f"https://www.virustotal.com/api/v3/domains/{domain}/subdomains"
+    headers = {"x-apikey": api_key}
+
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            if "data" in data:
+                for entry in data["data"]:
+                    name = entry.get("id")
+                    if name and name.endswith(domain):
+                        subdomains.append(name.strip())
+        else:
+            logger.warning(f"VirusTotal returned {resp.status_code}: {resp.text}")
+    except Exception as e:
+        logger.warning(f"VirusTotal error: {e}")
+
+    return list(set(subdomains))
+
+
 def run(
     target: str,
     wordlist_path: str = None,
@@ -149,8 +179,19 @@ def run(
 
     # --- Passive OSINT ---
     passive = passive_crtsh(target)
+
+    # VirusTotal passive
+    vt_api_key = os.getenv("VT_API_KEY")
+    if vt_api_key:
+        vt_passive = passive_virustotal(target, vt_api_key)
+        if vt_passive:
+            logger.info(f"[Passive] Found {len(vt_passive)} subdomains from VirusTotal")
+            passive.extend(vt_passive)
+    else:
+        logger.warning("VirusTotal API key not found in .env, skipping VT passive enumeration")
+
     if passive:
-        logger.info(f"[Passive] Found {len(passive)} subdomains from crt.sh")
+        logger.info(f"[Passive] Found total {len(passive)} subdomains (crt.sh + VirusTotal)")
         subdomains.extend(passive)
 
     subdomains = list(set(subdomains))
