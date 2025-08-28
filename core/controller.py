@@ -2,7 +2,7 @@ from rich.console import Console
 from rich.table import Table
 
 from core.aggregator import Aggregator
-from core.reporting import Reporter
+from core.reporting import Reporting
 from modules import dns_enum
 from utils.logger import global_logger as logger
 
@@ -91,4 +91,4 @@ class Controller:
 
                 console.print(table)
 
-        Reporter.save(self.aggregator.get_results(), self.args.output, self.args.format)
+        Reporting.save(self.aggregator.get_results(), self.args.output, self.args.format)

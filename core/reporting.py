@@ -6,7 +6,7 @@ from utils.logger import Logger
 logger = Logger()
 
 
-class Reporter:
+class Reporting:
     @staticmethod
     def save(results, filename, format_type="json"):
         os.makedirs("output", exist_ok=True)
@@ -20,8 +20,12 @@ class Reporter:
         }
         folder = folder_map.get(format_type)
         os.makedirs(folder, exist_ok=True)
+        
+        base, _ = os.path.splitext(filename)
+        filename = f"{base}.{format_type}"
+        
         filepath = os.path.join(folder, filename)
-
+        
         for module, data in results.items():
             handler_cls = HANDLERS.get(module)
             if handler_cls:

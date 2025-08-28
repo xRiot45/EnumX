@@ -18,7 +18,7 @@ class DNSHandler:
         if format_type == "json":
             with open(filepath, "w") as f:
                 json.dump(results, f, indent=4)
-            logger.info(f"[DNS] Saved JSON → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         # --- CSV format ---
         elif format_type == "csv":
@@ -40,7 +40,7 @@ class DNSHandler:
                                 ]
                             )
                             first_row = False
-            logger.info(f"[DNS] Saved CSV → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         # --- TXT format ---
         elif format_type == "txt":
@@ -50,7 +50,7 @@ class DNSHandler:
                     for rtype, values in entry.get("records", {}).items():
                         for val in values:
                             f.write(f"  {rtype} {val.get('class','IN')} {val.get('ttl','')} → {val.get('value','')}\n")
-            logger.info(f"[DNS] Saved TXT → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         # --- XLSX format ---
         elif format_type == "xlsx":
@@ -86,7 +86,7 @@ class DNSHandler:
                     ws.cell(start_row, 1).alignment = Alignment(vertical="top")
 
             wb.save(filepath)
-            logger.info(f"[DNS] Saved XLSX with merged cells → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         # --- HTML format ---
         elif format_type == "html":
@@ -117,7 +117,7 @@ class DNSHandler:
                             f.write("</tr>\n")
                             first_row = False
                 f.write("</table></body></html>\n")
-            logger.info(f"[DNS] Saved HTML → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         # --- Markdown format ---
         elif format_type == "md":
@@ -134,7 +134,7 @@ class DNSHandler:
                                 f"| {sub if first_row else ''} | {rtype} | {val.get('class','IN')} | {val.get('ttl','')} | {val.get('value','')} |\n"
                             )
                             first_row = False
-            logger.info(f"[DNS] Saved Markdown → {filepath}")
+            logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
 
         else:
             logger.error(f"Unsupported format: {format_type}")
