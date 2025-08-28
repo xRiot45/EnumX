@@ -11,7 +11,7 @@ import dns.resolver
 import dns.zone
 import requests
 from rich.progress import Progress
-from dotenv import load_dotenv  # <<<< tambahan
+from dotenv import load_dotenv
 
 from utils.logger import global_console
 from utils.logger import global_logger as logger
