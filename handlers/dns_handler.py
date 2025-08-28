@@ -14,8 +14,15 @@ class DNSHandler:
     def save(results, filepath, format_type="json"):
         subdomains = results.get("subdomains", [])
 
+        # --- All formats ---
+        if format_type == "all":
+            base = filepath.rsplit(".", 1)[0]
+            for fmt in ["json", "csv", "txt", "xlsx", "html", "md"]:
+                DNSHandler.save(results, f"{base}.{fmt}", fmt)
+            return
+
         # --- JSON format
-        if format_type == "json":
+        elif format_type == "json":
             with open(filepath, "w") as f:
                 json.dump(results, f, indent=4)
             logger.info(f"Results successfully saved to {filepath} ({format_type.upper()})")
