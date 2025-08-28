@@ -127,8 +127,7 @@ pip install -r requirements.txt
 ### Running EnumX inside venv
 
 ```bash
-# Example DNS enumeration run
-python main.py <target> -m dns -w wordlists/wordlist-1.txt --dns-records all -o result.xlsx -f xlsx -t 50
+python3 main.py <target> [-w WORDLIST] [-m MODULES] [-F FILTER] [-t THREADS] [-o OUTPUT] [-f FORMAT] [-v VERBOSE | -s SILENT]
 ```
 
 ### Deactivate when you are done
@@ -158,7 +157,7 @@ deactivate
 ### Basic DNS Enumeration
 
 ```bash
-python3 main.py <target> -m dns -w wordlists/wordlist-1.txt -F A MX TXT -o result.md -f md -t 50
+python3 main.py google.com -w wordlists/wordlist-1.txt -m dns -F A -t 50 -o google-result -f all -v
 ```
 
 #### Arguments
@@ -166,6 +165,9 @@ python3 main.py <target> -m dns -w wordlists/wordlist-1.txt -F A MX TXT -o resul
 * `-m` → Module to run (e.g., `dns`)
 * `-t` → Number of threads (default: 10)
 * `-w` → Wordlist for subdomains
+* `-F` → Filter options for the selected module
+* `-v` → Enable verbose output (show detailed process logs)
+* `-s` → Silent mode (suppress console output, only save to file)
 * `<target>` → Domain or host to enumerate
 * `<output>` → Output file (format inferred from extension)
 
