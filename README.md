@@ -157,7 +157,12 @@ deactivate
 ### Basic DNS Enumeration
 
 ```bash
-python3 main.py google.com -w wordlists/wordlist-1.txt -m dns -F A -t 50 -o google-result -f all -v
+python3 main.py google.com -w wordlists/dns/wordlist-1.txt -m dns -F A -t 50 -o google-result -f all -v
+```
+
+### Basic Endpoint Enumeration
+```bash
+python3 main.py google.com -m endpoint -w wordlists/endpoint/api/wordlist-1.txt -o skckpolda-endpoints-5 -f csv -t 30 -v
 ```
 
 #### Arguments
