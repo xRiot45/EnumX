@@ -142,7 +142,7 @@ def main():
                 elif r:
                     normalized_records.append(r)
         args.filter_dns = sorted(set(normalized_records))
-        
+
     elif "endpoint" in args.modules and hasattr(args, "filter_endpoint"):
         ALL_ENDPOINTS = MODULE_FILTERS["endpoint"]
         normalized_endpoints = []

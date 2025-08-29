@@ -93,20 +93,31 @@ class Controller:
 
         elif "endpoint" in modules:
             self.logger.info("Running Endpoint Enumeration...")
-            endpoint_results = endpoint_enum.run(self.args.target, wordlist=self.args.wordlist, logger=self.logger)
+            endpoint_results = endpoint_enum.run(
+                self.args.target,
+                wordlist=self.args.wordlist,
+                logger=self.logger,
+                threads=self.args.threads,
+            )
             self.aggregator.add("endpoint", endpoint_results)
 
             if not getattr(self.args, "silent", False):
                 console = Console()
                 table = Table(title=f"Endpoint Enumeration Results for {self.args.target}")
 
-                table.add_column("URL", style="cyan", no_wrap=True)
+                table.add_column("URL", style="cyan")
                 table.add_column("Status", style="magenta")
                 table.add_column("Length", style="green")
                 table.add_column("Methods", style="yellow")
 
                 for entry in endpoint_results.get("endpoints", []):
-                    table.add_row(entry["url"], str(entry["status"]), str(entry["length"]), ", ".join(entry["methods"]))
+                    url = str(entry.get("url", "-"))
+                    status = str(entry.get("status", "-"))
+                    length = str(entry.get("length", "-"))
+                    methods = ", ".join(entry.get("methods", [])) if entry.get("methods") else "-"
+
+                    table.add_row(url, status, length, methods)
+
 
                 console.print(table)
 

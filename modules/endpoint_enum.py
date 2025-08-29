@@ -1,17 +1,20 @@
-import requests
 import re
-from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urljoin, urlparse
 
-from utils.logger import global_logger as logger
-from utils.logger import global_console
-from utils.wordlists import load_wordlist
+import requests
+from bs4 import BeautifulSoup
 from rich.progress import Progress
+
+from utils.logger import global_console
+from utils.logger import global_logger as logger
+from utils.wordlists import load_wordlist
 
 
 def crawl_links(base_url, max_depth=2, visited=None):
-    """Crawl halaman untuk mencari link internal."""
+    """
+    Crawl page for search internal links
+    """
     if visited is None:
         visited = set()
 
@@ -34,13 +37,15 @@ def crawl_links(base_url, max_depth=2, visited=None):
                 endpoints.append(full_url)
                 endpoints.extend(crawl_links(full_url, max_depth=max_depth - 1, visited=visited))
     except Exception as e:
-        logger.warning(f"[Endpoint:Crawler] Failed to fetch {base_url} ({e})")
+        logger.warning(f"Failed to fetch {base_url} ({e})")
 
     return list(set(endpoints))
 
 
 def extract_js_endpoints(base_url):
-    """Cari endpoint di file JavaScript."""
+    """
+    Search for endpoints in JavaScript files.
+    """
     endpoints = []
     try:
         r = requests.get(base_url, timeout=5)
@@ -50,19 +55,21 @@ def extract_js_endpoints(base_url):
             js_url = urljoin(base_url, js)
             try:
                 js_resp = requests.get(js_url, timeout=5)
-                found = re.findall(r'\/[A-Za-z0-9_\-\/]+', js_resp.text)
+                found = re.findall(r"\/[A-Za-z0-9_\-\/]+", js_resp.text)
                 endpoints.extend([urljoin(base_url, f) for f in found if f.startswith("/")])
             except Exception as e:
-                logger.warning(f"[Endpoint:JS] Failed to fetch {js_url} ({e})")
+                logger.warning(f"Failed to fetch {js_url} ({e})")
 
     except Exception as e:
-        logger.warning(f"[Endpoint:JS] Failed to fetch {base_url} ({e})")
+        logger.warning(f"Failed to fetch {base_url} ({e})")
 
     return list(set(endpoints))
 
 
 def fuzz_endpoints(base_url, wordlist_path=None, threads=10):
-    """Gunakan wordlist untuk path fuzzing (multithreaded + progress bar)."""
+    """
+    Use wordlist for path fuzzing
+    """
     endpoints = []
     wordlist = load_wordlist(wordlist_path)
 
@@ -76,7 +83,10 @@ def fuzz_endpoints(base_url, wordlist_path=None, threads=10):
             return None
         return None
 
-    with ThreadPoolExecutor(max_workers=threads) as executor, Progress(console=global_console, transient=True) as progress:
+    with (
+        ThreadPoolExecutor(max_workers=threads) as executor,
+        Progress(console=global_console, transient=True) as progress,
+    ):
         task = progress.add_task("[cyan]Fuzzing endpoints...", total=len(wordlist))
         futures = [executor.submit(check_path, path) for path in wordlist]
 
@@ -90,22 +100,44 @@ def fuzz_endpoints(base_url, wordlist_path=None, threads=10):
 
 
 def check_http_methods(url):
-    """Cek metode HTTP yang diizinkan dengan OPTIONS."""
+    """
+    Hybrid HTTP method checker:
+    """
     methods = ["GET"]
+    candidates = ["POST", "PUT", "DELETE", "PATCH"]
+
+    allowed_from_options = []
+
     try:
         r = requests.options(url, timeout=3)
         allow = r.headers.get("Allow", "")
         if allow:
-            for m in ["POST", "PUT", "DELETE", "PATCH"]:
-                if m in allow:
-                    methods.append(m)
+            allowed_from_options = [m.strip().upper() for m in allow.split(",")]
+            methods.extend([m for m in candidates if m in allowed_from_options])
     except Exception:
         pass
+
+    if not allowed_from_options:
+        try:
+            baseline = requests.get(url, timeout=3)
+            baseline_sig = (baseline.status_code, len(baseline.content))
+
+            for m in candidates:
+                try:
+                    test = requests.request(m, url, timeout=3)
+                    sig = (test.status_code, len(test.content))
+
+                    if test.status_code not in [405, 501] and sig != baseline_sig:
+                        methods.append(m)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
     return list(set(methods))
 
 
 def analyze_endpoints(endpoints, threads=10, limit=1000):
-    """Ambil status code & response size (multithreaded + progress bar)."""
     results = []
 
     def check_endpoint(ep):
@@ -113,11 +145,19 @@ def analyze_endpoints(endpoints, threads=10, limit=1000):
             r = requests.get(ep, timeout=3)
             size = len(r.content)
             methods = check_http_methods(ep)
-            return {"url": ep, "status": r.status_code, "length": size, "methods": methods}
+            return {
+                "url": str(ep),
+                "status": str(r.status_code),
+                "length": str(size),
+                "methods": [str(m) for m in methods],
+            }
         except Exception:
-            return {"url": ep, "status": "Error", "length": 0, "methods": []}
+            return {"url": str(ep), "status": "Error", "length": "0", "methods": []}
 
-    with ThreadPoolExecutor(max_workers=threads) as executor, Progress(console=global_console, transient=True) as progress:
+    with (
+        ThreadPoolExecutor(max_workers=threads) as executor,
+        Progress(console=global_console, transient=True) as progress,
+    ):
         task = progress.add_task("[cyan]Analyzing endpoints...", total=min(len(endpoints), limit))
         futures = [executor.submit(check_endpoint, ep) for ep in endpoints[:limit]]
 
@@ -129,29 +169,27 @@ def analyze_endpoints(endpoints, threads=10, limit=1000):
 
 
 def run(target, wordlist=None, threads=10, logger=logger):
-    """Stage 1 – Basic Endpoint Discovery"""
+    """
+    Run endpoint enumeration
+    """
     base_url = f"http://{target}" if not target.startswith("http") else target
-    logger.info(f"[Endpoint] Starting basic discovery on {base_url}")
+    logger.info(f"Starting basic discovery on {base_url}")
 
     endpoints = set()
 
-    # Crawl halaman
     crawled = crawl_links(base_url, max_depth=1)
-    logger.success(f"[Endpoint] Crawled {len(crawled)} endpoints")
+    logger.success(f"Crawled {len(crawled)} endpoints")
     endpoints.update(crawled)
 
-    # Extract dari JS
     js_eps = extract_js_endpoints(base_url)
-    logger.success(f"[Endpoint] Extracted {len(js_eps)} endpoints from JS")
+    logger.success(f"Extracted {len(js_eps)} endpoints from JS")
     endpoints.update(js_eps)
 
-    # Fuzzing
     fuzzed = fuzz_endpoints(base_url, wordlist, threads=threads)
-    logger.success(f"[Endpoint] Fuzzed {len(fuzzed)} potential endpoints")
+    logger.success(f"Fuzzed {len(fuzzed)} potential endpoints")
     endpoints.update(fuzzed)
 
-    # Analisis
     results = analyze_endpoints(list(endpoints), threads=threads, limit=2000)
-    logger.success(f"[Endpoint] Final valid endpoints: {len(results)}")
+    logger.success(f"Final valid endpoints: {len(results)}")
 
     return {"endpoints": results}
