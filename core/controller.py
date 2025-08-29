@@ -3,7 +3,7 @@ from rich.table import Table
 
 from core.aggregator import Aggregator
 from core.reporting import Reporting
-from modules import dns_enum
+from modules import dns_enum, endpoint_enum
 from utils.logger import global_logger as logger
 
 
@@ -90,5 +90,28 @@ class Controller:
                             )
 
                 console.print(table)
+
+        elif "endpoint" in modules:
+            self.logger.info("Running Endpoint Enumeration...")
+            endpoint_results = endpoint_enum.run(self.args.target, wordlist=self.args.wordlist, logger=self.logger)
+            self.aggregator.add("endpoint", endpoint_results)
+
+            if not getattr(self.args, "silent", False):
+                console = Console()
+                table = Table(title=f"Endpoint Enumeration Results for {self.args.target}")
+
+                table.add_column("URL", style="cyan", no_wrap=True)
+                table.add_column("Status", style="magenta")
+                table.add_column("Length", style="green")
+                table.add_column("Methods", style="yellow")
+
+                for entry in endpoint_results.get("endpoints", []):
+                    table.add_row(entry["url"], str(entry["status"]), str(entry["length"]), ", ".join(entry["methods"]))
+
+                console.print(table)
+
+        else:
+            self.logger.warning("No valid modules selected. Exiting.")
+            return
 
         Reporting.save(self.aggregator.get_results(), self.args.output, self.args.format)

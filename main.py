@@ -142,10 +142,22 @@ def main():
                 elif r:
                     normalized_records.append(r)
         args.filter_dns = sorted(set(normalized_records))
+        
+    elif "endpoint" in args.modules and hasattr(args, "filter_endpoint"):
+        ALL_ENDPOINTS = MODULE_FILTERS["endpoint"]
+        normalized_endpoints = []
+        for ep in args.filter_endpoint:
+            for e in ep.split(","):
+                e = e.strip()
+                if e == "ALL":
+                    normalized_endpoints.extend(ALL_ENDPOINTS)
+                elif e:
+                    normalized_endpoints.append(e)
+        args.filter_endpoint = sorted(set(normalized_endpoints))
 
     # Info for coming soon modules
     for mod in args.modules:
-        if mod != "dns":
+        if mod not in ["dns", "endpoint"]:
             logger.info(f"[!] Module '{mod}' is coming soon...")
 
     controller = Controller(args)
