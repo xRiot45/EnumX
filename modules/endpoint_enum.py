@@ -34,6 +34,8 @@ def crawl_links(base_url, max_depth=2, visited=None):
             href = link["href"]
             full_url = urljoin(base_url, href)
             if urlparse(full_url).netloc == urlparse(base_url).netloc:
+                if logger.level == "DEBUG":
+                    logger.info(f"[Crawl] Found link: {full_url}")
                 endpoints.append(full_url)
                 endpoints.extend(crawl_links(full_url, max_depth=max_depth - 1, visited=visited))
     except Exception as e:
@@ -53,10 +55,17 @@ def extract_js_endpoints(base_url):
 
         for js in js_files:
             js_url = urljoin(base_url, js)
+            if logger.level == "DEBUG":
+                logger.info(f"[JS] Checking {js_url}")
             try:
                 js_resp = requests.get(js_url, timeout=5)
                 found = re.findall(r"\/[A-Za-z0-9_\-\/]+", js_resp.text)
-                endpoints.extend([urljoin(base_url, f) for f in found if f.startswith("/")])
+                for f in found:
+                    if f.startswith("/"):
+                        full = urljoin(base_url, f)
+                        endpoints.append(full)
+                        if logger.level == "DEBUG":
+                            logger.info(f"[JS] Extracted endpoint: {full}")
             except Exception as e:
                 logger.warning(f"Failed to fetch {js_url} ({e})")
 
@@ -78,8 +87,12 @@ def fuzz_endpoints(base_url, wordlist_path=None, threads=10):
         try:
             r = requests.get(test_url, timeout=3)
             if r.status_code not in [404]:
+                if logger.level == "DEBUG":
+                    logger.info(f"[Fuzz] Found {test_url} ({r.status_code})")
                 return test_url
-        except Exception:
+        except Exception as e:
+            if logger.level == "DEBUG":
+                logger.warning(f"[Fuzz] Error {test_url}: {e}")
             return None
         return None
 
@@ -101,7 +114,7 @@ def fuzz_endpoints(base_url, wordlist_path=None, threads=10):
 
 def check_http_methods(url):
     """
-    Hybrid HTTP method checker:
+    Hybrid HTTP method checker
     """
     methods = ["GET"]
     candidates = ["POST", "PUT", "DELETE", "PATCH"]
@@ -114,8 +127,11 @@ def check_http_methods(url):
         if allow:
             allowed_from_options = [m.strip().upper() for m in allow.split(",")]
             methods.extend([m for m in candidates if m in allowed_from_options])
-    except Exception:
-        pass
+            if logger.level == "DEBUG":
+                logger.info(f"[Methods] {url} -> Allow header: {allowed_from_options}")
+    except Exception as e:
+        if logger.level == "DEBUG":
+            logger.warning(f"[Methods] OPTIONS failed for {url}: {e}")
 
     if not allowed_from_options:
         try:
@@ -129,15 +145,23 @@ def check_http_methods(url):
 
                     if test.status_code not in [405, 501] and sig != baseline_sig:
                         methods.append(m)
-                except Exception:
+                        if logger.level == "DEBUG":
+                            logger.info(f"[Methods] {url} -> supports {m}")
+                except Exception as e:
+                    if logger.level == "DEBUG":
+                        logger.warning(f"[Methods] Error testing {m} on {url}: {e}")
                     continue
-        except Exception:
-            pass
+        except Exception as e:
+            if logger.level == "DEBUG":
+                logger.warning(f"[Methods] Baseline GET failed for {url}: {e}")
 
     return list(set(methods))
 
 
 def analyze_endpoints(endpoints, threads=10, limit=1000):
+    """
+    Analyze endpoints for status code, content length, and allowed methods.
+    """
     results = []
 
     def check_endpoint(ep):
@@ -145,13 +169,17 @@ def analyze_endpoints(endpoints, threads=10, limit=1000):
             r = requests.get(ep, timeout=3)
             size = len(r.content)
             methods = check_http_methods(ep)
+            if logger.level == "DEBUG":
+                logger.info(f"[Analyze] {ep} -> {r.status_code}, {size} bytes, Methods={methods}")
             return {
                 "url": str(ep),
                 "status": str(r.status_code),
                 "length": str(size),
                 "methods": [str(m) for m in methods],
             }
-        except Exception:
+        except Exception as e:
+            if logger.level == "DEBUG":
+                logger.warning(f"[Analyze] Error fetching {ep}: {e}")
             return {"url": str(ep), "status": "Error", "length": "0", "methods": []}
 
     with (
