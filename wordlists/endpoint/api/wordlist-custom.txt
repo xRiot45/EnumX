@@ -1,0 +1,6 @@
+users
+auth
+products
+transactions
+sales
+reports
