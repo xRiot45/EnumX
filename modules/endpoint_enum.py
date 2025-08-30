@@ -56,11 +56,11 @@ def crawl_links(base_url, max_depth=2, visited=None, filter_tag="endpoint"):
             full_url = urljoin(base_url, href)
             if urlparse(full_url).netloc == urlparse(base_url).netloc:
                 if logger.level == "DEBUG":
-                    logger.info(f"[CRAWL/{filter_tag}] └─ Found link: {full_url}")
+                    logger.info(f"[CRAWL/{filter_tag}] Found link: {full_url}")
                 endpoints.append(full_url)
                 endpoints.extend(crawl_links(full_url, max_depth=max_depth - 1, visited=visited))
     except Exception as e:
-        logger.warning(f"[CRAWL/{filter_tag}] └─ Failed to crawl {base_url} ({e})")
+        logger.warning(f"[CRAWL/{filter_tag}] Failed to crawl {base_url} ({e})")
 
     return list(set(endpoints))
 
@@ -77,7 +77,7 @@ def extract_js_endpoints(base_url, filter_tag="endpoint"):
         for js in js_files:
             js_url = urljoin(base_url, js)
             if logger.level == "DEBUG":
-                logger.info(f"[JS/{filter_tag}] └─ Found JS file: {js_url}")
+                logger.info(f"[JS/{filter_tag}] Found JS file: {js_url}")
             try:
                 js_resp = safe_request("GET", js_url)
                 found = re.findall(r"\/[A-Za-z0-9_\-\/]+", js_resp.text)
@@ -88,10 +88,10 @@ def extract_js_endpoints(base_url, filter_tag="endpoint"):
                         if logger.level == "DEBUG":
                             logger.info(f"[JS/{filter_tag}] Extracted endpoint: {full}")
             except Exception as e:
-                logger.warning(f"[JS/{filter_tag}] └─ Failed to fetch {js_url} ({e})")
+                logger.warning(f"[JS/{filter_tag}] Failed to fetch {js_url} ({e})")
 
     except Exception as e:
-        logger.warning(f"[JS/{filter_tag}] └─ Failed to fetch base page {base_url} ({e})")
+        logger.warning(f"[JS/{filter_tag}] Failed to fetch base page {base_url} ({e})")
 
     return list(set(endpoints))
 
@@ -232,7 +232,7 @@ def run(target, wordlist=None, threads=10, filters=None, base_path=None, logger=
         if not base_url.endswith("/"):
             base_url += "/"
 
-    filter_tag = (filters[0] if filters else "endpoint")
+    filter_tag = filters[0] if filters else "endpoint"
 
     logger.info(f"Starting endpoint enumeration on {base_url} [Filter: {filter_tag}]")
 
@@ -241,7 +241,7 @@ def run(target, wordlist=None, threads=10, filters=None, base_path=None, logger=
     # Stage 1: Crawl
     logger.info("[CRAWL] Searching for internal links...")
     crawled = crawl_links(base_url, max_depth=1, filter_tag=filter_tag)
-    logger.success(f"  └─ Found {len(crawled)} endpoints via crawling")
+    logger.success(f"Found {len(crawled)} endpoints via crawling")
     endpoints.update(crawled)
 
     # Stage 2: JS Extraction
