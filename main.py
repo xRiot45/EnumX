@@ -17,7 +17,7 @@ def main():
     MODULE_FILTERS = {
         "dns": ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR", "SRV", "CAA", "DNSKEY", "RRSIG"],
         "banner": ["http", "https", "ftp", "ssh"],
-        "endpoint": ["api", "api-docs"],
+        "endpoint": ["api", "api-docs", "swagger", "graphql", "rest", "internal", "mobile"],
         "ldap-smtp": ["ldap", "smtp"],
         "smb-ftp": ["SMB", "FTP"],
     }
