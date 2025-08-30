@@ -10,7 +10,7 @@ import dns.query
 import dns.rdataclass
 import dns.resolver
 import dns.zone
-import requests
+import requests 
 from dotenv import load_dotenv
 from rich.progress import Progress
 

@@ -93,17 +93,29 @@ class Controller:
 
         elif "endpoint" in modules:
             self.logger.info("Running Endpoint Enumeration...")
+
+            endpoint_filters = getattr(self.args, "filter_endpoint", None)
+            if endpoint_filters and not isinstance(endpoint_filters, list):
+                endpoint_filters = [endpoint_filters]
+
             endpoint_results = endpoint_enum.run(
                 self.args.target,
                 wordlist=self.args.wordlist,
-                logger=self.logger,
                 threads=self.args.threads,
+                filters=endpoint_filters,
+                base_path=getattr(self.args, "base_path", None),
+                logger=self.logger,
             )
             self.aggregator.add("endpoint", endpoint_results)
 
             if not getattr(self.args, "silent", False):
                 console = Console()
-                table = Table(title=f"Endpoint Enumeration Results for {self.args.target}")
+                filters_label = (
+                    f" [Filters: {', '.join(endpoint_results.get('filters', []))}]"
+                    if endpoint_results.get("filters")
+                    else ""
+                )
+                table = Table(title=f"Endpoint Enumeration Results for {self.args.target}{filters_label}")
 
                 table.add_column("URL", style="cyan")
                 table.add_column("Status", style="magenta")
@@ -117,7 +129,6 @@ class Controller:
                     methods = ", ".join(entry.get("methods", [])) if entry.get("methods") else "-"
 
                     table.add_row(url, status, length, methods)
-
 
                 console.print(table)
 

@@ -17,7 +17,7 @@ def main():
     MODULE_FILTERS = {
         "dns": ["A", "AAAA", "MX", "NS", "CNAME", "TXT", "SOA", "PTR", "SRV", "CAA", "DNSKEY", "RRSIG"],
         "banner": ["http", "https", "ftp", "ssh"],
-        "endpoint": ["/api", "/admin", "/login", "/dashboard"],
+        "endpoint": ["api", "api-docs"],
         "ldap-smtp": ["ldap", "smtp"],
         "smb-ftp": ["SMB", "FTP"],
     }
@@ -26,13 +26,14 @@ def main():
         prog="EnumX",
         formatter_class=CustomHelpFormatter,
         add_help=False,
-        usage="python3 main.py <target> [-w WORDLIST] [-m MODULES] [-F FILTER] [-t THREADS] [-o OUTPUT] [-f FORMAT] [-v VERBOSE | -s SILENT]",
+        usage="python3 main.py <target> [-w WORDLIST] [-m MODULES] [-F FILTER] "
+        "[-t THREADS] [-o OUTPUT] [-f FORMAT] [-v VERBOSE | -s SILENT]",
     )
 
     # --- TARGET SPECIFICATION ---
     target_group = parser.add_argument_group("TARGET SPECIFICATION")
     target_group.add_argument("target", help="Target domain to enumerate (e.g. example.com)")
-    target_group.add_argument("-w", "--wordlist", help="Custom wordlist file for subdomain enumeration")
+    target_group.add_argument("-w", "--wordlist", help="Custom wordlist file (depends on module & filter)")
 
     # --- MODULES ---
     module_group = parser.add_argument_group("MODULE SELECTION")
@@ -46,7 +47,7 @@ def main():
             "Modules to run (default: dns)\n"
             "  dns        : DNS Enumeration\n"
             "  banner     : Banner Enumeration (coming soon)\n"
-            "  endpoint   : Endpoint Enumeration (coming soon)\n"
+            "  endpoint   : Endpoint Enumeration (supports filters)\n"
             "  ldap-smtp  : LDAP & SMTP Enumeration (coming soon)\n"
             "  smb-ftp    : SMB & FTP Enumeration (coming soon)"
         ),
@@ -103,6 +104,11 @@ def main():
 
     # --- MISC ---
     misc_group = parser.add_argument_group("MISC")
+    misc_group.add_argument(
+        "--base-path",
+        default=None,
+        help="Base path prefix for endpoint enumeration (e.g. /api, /v1). Default: None",
+    )
     misc_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 
     args = parser.parse_args()
@@ -143,19 +149,19 @@ def main():
                     normalized_records.append(r)
         args.filter_dns = sorted(set(normalized_records))
 
+    # Normalize Endpoint filters if endpoint module is selected
     elif "endpoint" in args.modules and hasattr(args, "filter_endpoint"):
         ALL_ENDPOINTS = MODULE_FILTERS["endpoint"]
         normalized_endpoints = []
         for ep in args.filter_endpoint:
             for e in ep.split(","):
-                e = e.strip()
-                if e == "ALL":
+                e = e.strip().lower()
+                if e == "all":
                     normalized_endpoints.extend(ALL_ENDPOINTS)
                 elif e:
                     normalized_endpoints.append(e)
         args.filter_endpoint = sorted(set(normalized_endpoints))
 
-    # Info for coming soon modules
     for mod in args.modules:
         if mod not in ["dns", "endpoint"]:
             logger.info(f"[!] Module '{mod}' is coming soon...")

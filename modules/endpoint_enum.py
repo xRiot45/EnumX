@@ -196,28 +196,47 @@ def analyze_endpoints(endpoints, threads=10, limit=1000):
     return results
 
 
-def run(target, wordlist=None, threads=10, logger=logger):
+def run(target, wordlist=None, threads=10, filters=None, base_path=None, logger=logger):
     """
     Run endpoint enumeration
     """
     base_url = f"http://{target}" if not target.startswith("http") else target
-    logger.info(f"Starting basic discovery on {base_url}")
+
+    # Handle base path
+    if base_path:
+        if not base_path.startswith("/"):
+            base_path = "/" + base_path
+        if not base_url.endswith("/"):
+            base_url += "/"
+        base_url = base_url.rstrip("/") + base_path
+
+    logger.info(f"Starting endpoint enumeration on {base_url}")
 
     endpoints = set()
 
+    # Stage 1: Crawl
     crawled = crawl_links(base_url, max_depth=1)
     logger.success(f"Crawled {len(crawled)} endpoints")
     endpoints.update(crawled)
 
+    # Stage 2: JS Extraction
     js_eps = extract_js_endpoints(base_url)
     logger.success(f"Extracted {len(js_eps)} endpoints from JS")
     endpoints.update(js_eps)
 
-    fuzzed = fuzz_endpoints(base_url, wordlist, threads=threads)
-    logger.success(f"Fuzzed {len(fuzzed)} potential endpoints")
-    endpoints.update(fuzzed)
+    # Stage 3: Fuzzing (manual wordlist dari user)
+    if wordlist:
+        fuzzed = fuzz_endpoints(base_url, wordlist, threads=threads)
+        logger.success(f"Fuzzed {len(fuzzed)} endpoints using custom wordlist")
+        endpoints.update(fuzzed)
+    else:
+        logger.warning("No wordlist provided for fuzzing. Skipping...")
 
+    # Stage 4: Analyze
     results = analyze_endpoints(list(endpoints), threads=threads, limit=2000)
     logger.success(f"Final valid endpoints: {len(results)}")
 
-    return {"endpoints": results}
+    return {
+        "filters": filters or [],
+        "endpoints": results,
+    }
